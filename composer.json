@@ -1,5 +1,5 @@
 {
-    "name": "psul-libraries/psul_user_auth",
+    "name": "psu-libraries/psul_user_auth",
     "description": "Adds functionality to alter users and user authentication",
     "type": "drupal-module",
     "license": "GPL-2.0-or-later",
