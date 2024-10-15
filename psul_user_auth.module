@@ -1,0 +1,52 @@
+<?php
+
+/**
+ * @file
+ * Primary module hooks for PSUL User Auth module.
+ */
+
+/**
+ * Implements hook_openid_connect_userinfo_alter().
+ *
+ * Altering the following user data to ensure consist authentication.
+ * - Email prevent user aliases from being used,
+ * - Username (should NOT include '@psu.edu'),
+ * - OIDC Name to include username (e.g. "Henninger, Mike (msh6004)").
+ *
+ * All changes are based on the User.Identity.Name (UPN) value.
+ */
+function psul_user_auth_openid_connect_userinfo_alter(array &$userinfo, array $context) {
+
+  // Remove @psu.edu from the username.
+  preg_match('/^(.+)@([^@]+)$/i', $userinfo['upn'], $matches);
+
+  // Nothing else to do if the default email is not an email.
+  if (!isset($matches[1])) {
+    return;
+  }
+
+  // Forcing none alias email to be used.
+  $userinfo['email'] = $userinfo['upn'];
+
+  // Adding username to name so that users are unique.
+  $userinfo['name'] .= " (" . $matches[1] . ")";
+
+  // Set the preferred username to strip out "@psu.edu".
+  $userinfo['preferred_username'] = $matches[1];
+}
+
+/**
+ * Implements hook_user_format_name_alter().
+ */
+function psul_user_auth_user_format_name_alter(&$name, $account) {
+  // Ensure that usernames are not displayed if they are email addresses, or if
+  // they are generated names starting with 'oidc_'.
+  $oidc_name = \Drupal::service('user.data')->get('openid_connect', $account->id(), 'oidc_name');
+
+  if (empty($oidc_name) || strpos($oidc_name, 'oidc_') === 0) {
+    return;
+  }
+
+  // Always display the oidc_name if it is set.
+  $name = $oidc_name;
+}

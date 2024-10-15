@@ -1,0 +1,8 @@
+name: 'PSUL User Auth'
+type: module
+description: 'Adds functionality to alter users and user authentication'
+package: PSU Libraries
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:user
+  - openid_connect:openid_connect
