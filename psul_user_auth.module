@@ -78,6 +78,9 @@ function psul_user_auth_openid_connect_userinfo_save(UserInterface $account, arr
 
   $user_data = \Drupal::service('user.data');
 
+  // Get assigned role from userData.
+  $role_assigned = $user_data->get('psul_user_auth', $account->id(), 'admin_role_assigned');
+
   // Check if the user is in the $umg group.
   if (in_array($umg, $context['userinfo']['groups'])) {
     // Check if the user already has the administrator role.
@@ -85,14 +88,16 @@ function psul_user_auth_openid_connect_userinfo_save(UserInterface $account, arr
       // Assign the administrator role.
       $account->addRole($role);
       $account->save();
+    }
 
-      // Record that this role was assigned by the psul_user_auth module.
+    // Record that this role was assigned by the psul_user_auth module.
+    if (!$role_assigned) {
       $user_data->set('psul_user_auth', $account->id(), 'admin_role_assigned', $role);
     }
   }
 
-  // Check if the user has the administrator role, isn't in the $umg group, and the role_assignment is in the userData.
-  $role_assigned = $user_data->get('psul_user_auth', $account->id(), 'admin_role_assigned');
+  // Check if the user has the administrator role, isn't in the $umg group,
+  // and the role_assignment is in the userData.
   if ($account->hasRole($role) && !in_array($umg, $context['userinfo']['groups']) && $role_assigned === $role) {
     // Remove the administrator role.
     $account->removeRole($role);
