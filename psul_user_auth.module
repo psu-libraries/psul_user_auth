@@ -5,6 +5,10 @@
  * Primary module hooks for PSUL User Auth module.
  */
 
+use Drupal\openid_connect\Entity\OpenIDConnectClientEntity;
+use Drupal\openid_connect\Plugin\OpenIDConnectClient\OpenIDConnectGenericClient;
+use Drupal\user\UserInterface;
+
 /**
  * Implements hook_openid_connect_userinfo_alter().
  *
@@ -49,4 +53,58 @@ function psul_user_auth_user_format_name_alter(&$name, $account) {
 
   // Always display the oidc_name if it is set.
   $name = $oidc_name;
+}
+
+/**
+ * Implements hook_openid_connect_userinfo_save().
+ *
+ * Assigns the administrator role to users who are in the $umg group. We're not
+ * using the role mapping in the openid_connect module because that unassigns
+ * admin roles from users who are not in the $umg group but have been manually
+ * assigned the administrator role.
+ *
+ * @see https://github.com/psu-libraries/psul_user_auth/issues/2
+ * @see https://www.drupal.org/project/openid_connect/issues/3492759
+ * @see https://git.drupalcode.org/project/openid_connect/-/merge_requests/130/diffs
+ */
+function psul_user_auth_openid_connect_userinfo_save(UserInterface $account, array $context) {
+  $client = OpenIDConnectClientEntity::load($context['plugin_id']);
+  if (!($client->getPlugin() instanceof OpenIDConnectGenericClient)) {
+    return;
+  }
+
+  $umg = 'umg-up.ul.druplars';
+  $role = 'administrator';
+
+  $user_data = \Drupal::service('user.data');
+
+  // Get assigned role from userData.
+  $role_assigned = $user_data->get('psul_user_auth', $account->id(), 'admin_role_assigned');
+
+  // Check if the user is in the $umg group.
+  if (in_array($umg, $context['userinfo']['roles'])) {
+    // Check if the user already has the administrator role.
+    if (!$account->hasRole($role)) {
+      // Assign the administrator role.
+      $account->addRole($role);
+      $account->save();
+    }
+
+    // Record that this role was assigned by the psul_user_auth module.
+    if (!$role_assigned) {
+      $user_data->set('psul_user_auth', $account->id(), 'admin_role_assigned', $role);
+    }
+  }
+
+  // Check if the user has the administrator role, isn't in the $umg group,
+  // and the role_assignment is in the userData.
+  if ($account->hasRole($role) && !in_array($umg, $context['userinfo']['roles']) && $role_assigned === $role) {
+    // Remove the administrator role.
+    $account->removeRole($role);
+    $account->save();
+
+    // Remove the record of role assignment from userData.
+    $user_data->delete('psul_user_auth', $account->id(), 'admin_role_assigned');
+  }
+
 }

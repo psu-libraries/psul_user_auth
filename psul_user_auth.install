@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * @file
+ * Install and uninstall functions for the PSUL User Auth module.
+ */
+
+/**
+ * Updates openid_connect.settings to remove administrator mapping.
+ */
+function psul_user_auth_update_10001() {
+  $config = \Drupal::configFactory()->getEditable('openid_connect.settings');
+  $role_mappings = $config->get('role_mappings');
+
+  if (isset($role_mappings['administrator']) && $role_mappings['administrator'] == ['umg-up.ul.druplars']) {
+    unset($role_mappings['administrator']);
+    $config->set('role_mappings', $role_mappings)->save();
+  }
+}
