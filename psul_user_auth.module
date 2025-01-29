@@ -82,7 +82,7 @@ function psul_user_auth_openid_connect_userinfo_save(UserInterface $account, arr
   $role_assigned = $user_data->get('psul_user_auth', $account->id(), 'admin_role_assigned');
 
   // Check if the user is in the $umg group.
-  if (in_array($umg, $context['userinfo']['groups'])) {
+  if (in_array($umg, $context['userinfo']['roles'])) {
     // Check if the user already has the administrator role.
     if (!$account->hasRole($role)) {
       // Assign the administrator role.
@@ -98,7 +98,7 @@ function psul_user_auth_openid_connect_userinfo_save(UserInterface $account, arr
 
   // Check if the user has the administrator role, isn't in the $umg group,
   // and the role_assignment is in the userData.
-  if ($account->hasRole($role) && !in_array($umg, $context['userinfo']['groups']) && $role_assigned === $role) {
+  if ($account->hasRole($role) && !in_array($umg, $context['userinfo']['roles']) && $role_assigned === $role) {
     // Remove the administrator role.
     $account->removeRole($role);
     $account->save();
